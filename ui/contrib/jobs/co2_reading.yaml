@@ -1,0 +1,8 @@
+---
+display_name: CO2 Reading
+automation_name: co2_reading
+fields:
+  - key: Minutes between checks
+    default: 1
+    unit: min
+    label: Duration between checks
