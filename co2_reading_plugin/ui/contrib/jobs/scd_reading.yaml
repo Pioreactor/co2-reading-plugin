@@ -1,0 +1,8 @@
+---
+display_name: SCD Reading
+automation_name: scd_reading
+fields:
+  - key: Minutes between checks
+    default: 1
+    unit: min
+    label: Duration between checks
