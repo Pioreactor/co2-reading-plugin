@@ -1,7 +1,10 @@
 ---
 display_name: CO2 Reading
-automation_name: co2_reading
-fields:
+job_name: co2_reading
+display: true 
+source: co2_reading_plugin
+description: Records a CO2 reading from an attached Adafruit SCD30 or SCD4x (SCD40 or SCD41).
+published_settings:
   - key: Minutes between checks
     default: 1
     unit: min

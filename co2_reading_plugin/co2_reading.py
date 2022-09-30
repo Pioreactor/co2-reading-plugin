@@ -49,7 +49,7 @@ class SCDReading(BackgroundJob):
         else:
             raise ValueError
 
-        self.record_timer = timing.RepeatedTimer(
+        self.record_scd_timer = timing.RepeatedTimer(
             self.minutes_between_checks * 60, self.record_scd, run_immediately=True
         )
 
