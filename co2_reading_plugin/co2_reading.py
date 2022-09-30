@@ -41,13 +41,14 @@ class SCDReading(BackgroundJob):
 
         i2c = board.I2C()
 
-        if config.getfloat("scd_config", "adafruit_sensor_type") == "scd30":
+        if config.get("scd_config", "adafruit_sensor_type") == "scd30":
             self.scd = adafruit_scd30.SCD30(i2c)
-        elif config.getfloat("scd_config", "adafruit_sensor_type") == "scd4x":
+        elif config.get("scd_config", "adafruit_sensor_type") == "scd4x":
             self.scd = adafruit_scd4x.SCD4X(i2c)
             self.scd.start_periodic_measurement()
         else:
-            raise ValueError
+            self.logger.error("'adafruit_sensor_type' in [scd_config] not found. Did you mean one of 'scd30' or 'scd4x'?")
+            raise ValueError("'adafruit_sensor_type' in [scd_config] not found. Did you mean one of 'scd30' or 'scd4x'?")
 
         self.record_scd_timer = timing.RepeatedTimer(
             self.minutes_between_checks * 60, self.record_scd, run_immediately=True
