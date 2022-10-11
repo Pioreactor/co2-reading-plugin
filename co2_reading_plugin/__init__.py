@@ -4,13 +4,14 @@ from __future__ import annotations
 import board
 import click
 from pioreactor.background_jobs.base import BackgroundJob
+from pioreactor.background_jobs.leader.mqtt_to_db_streaming import produce_metadata
+from pioreactor.background_jobs.leader.mqtt_to_db_streaming import register_source_to_sink
+from pioreactor.background_jobs.leader.mqtt_to_db_streaming import TopicToParserToTable
 from pioreactor.config import config
 from pioreactor.utils import timing
 from pioreactor.whoami import get_latest_experiment_name
 from pioreactor.whoami import get_unit_name
-from pioreactor.background_jobs.leader.mqtt_to_db_streaming import produce_metadata
-from pioreactor.background_jobs.leader.mqtt_to_db_streaming import register_source_to_sink
-from pioreactor.background_jobs.leader.mqtt_to_db_streaming import TopicToParserToTable
+
 
 def parser(topic, payload) -> dict:
     metadata = produce_metadata(topic)
@@ -21,9 +22,10 @@ def parser(topic, payload) -> dict:
         "co2_reading_ppm": float(payload),
     }
 
+
 register_source_to_sink(
     TopicToParserToTable(
-        'pioreactor/+/+/scd_reading/co2',
+        "pioreactor/+/+/scd_reading/co2",
         parser,
         "co2_readings",
     )
@@ -61,14 +63,20 @@ class SCDReading(BackgroundJob):
 
         if config.get("scd_config", "adafruit_sensor_type") == "scd30":
             from adafruit_scd30 import SCD30
+
             self.scd = SCD30(i2c)
         elif config.get("scd_config", "adafruit_sensor_type") == "scd4x":
             from adafruit_scd4x import SCD4X
+
             self.scd = SCD4X(i2c)
             self.scd.start_periodic_measurement()
         else:
-            self.logger.error("'adafruit_sensor_type' in [scd_config] not found. Did you mean one of 'scd30' or 'scd4x'?")
-            raise ValueError("'adafruit_sensor_type' in [scd_config] not found. Did you mean one of 'scd30' or 'scd4x'?")
+            self.logger.error(
+                "'adafruit_sensor_type' in [scd_config] not found. Did you mean one of 'scd30' or 'scd4x'?"
+            )
+            raise ValueError(
+                "'adafruit_sensor_type' in [scd_config] not found. Did you mean one of 'scd30' or 'scd4x'?"
+            )
 
         self.record_scd_timer = timing.RepeatedTimer(
             self.minutes_between_checks * 60, self.record_scd, run_immediately=True
