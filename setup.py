@@ -17,6 +17,6 @@ setup(
     url="https://github.com/Pioreactor/co2_reading_plugin",
     packages=find_packages(),
     include_package_data=True,
-    install_requires=['install adafruit-circuitpython-scd30', 'install adafruit-circuitpython-scd4x'],
+    install_requires=["adafruit-circuitpython-scd30", "adafruit-circuitpython-scd4x"],
     entry_points={"pioreactor.plugins": "co2_reading_plugin = co2_reading_plugin"},
 )
