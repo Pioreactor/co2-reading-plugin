@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import board
 import click
 from pioreactor.background_jobs.base import BackgroundJob
 from pioreactor.background_jobs.leader.mqtt_to_db_streaming import produce_metadata
@@ -9,9 +8,12 @@ from pioreactor.background_jobs.leader.mqtt_to_db_streaming import register_sour
 from pioreactor.background_jobs.leader.mqtt_to_db_streaming import TopicToParserToTable
 from pioreactor.config import config
 from pioreactor.exc import HardwareNotFoundError
+from pioreactor.hardware import SCL
+from pioreactor.hardware import SDA
 from pioreactor.utils import timing
 from pioreactor.whoami import get_latest_experiment_name
 from pioreactor.whoami import get_unit_name
+from pioreactor.whoami import is_testing_env
 
 
 def parser(topic, payload) -> dict:
@@ -44,15 +46,15 @@ class SCDReading(BackgroundJob):
         "relative_humidity": {"datatype": "float", "unit": "%rH", "settable": False},
     }
 
-    def __init__(  # config stuff, settable in activities
+    def __init__(
         self,
-        unit,
-        experiment,
+        unit: str,
+        experiment: str,
         interval: float,
         skip_co2: bool = False,
         skip_temperature: bool = False,
         skip_relative_humidity: bool = False,
-    ):
+    ) -> None:
         super().__init__(unit=unit, experiment=experiment)
 
         self.interval = interval
@@ -60,7 +62,14 @@ class SCDReading(BackgroundJob):
         self.skip_temperature = skip_temperature
         self.skip_relative_humidity = skip_relative_humidity
 
-        i2c = board.I2C()
+        if not is_testing_env():
+            from busio import I2C
+
+            i2c = I2C(SCL, SDA)
+        else:
+            from pioreactor.utils.mock import MockI2C
+
+            i2c = MockI2C(SCL, SDA)
 
         if config.get("scd_config", "adafruit_sensor_type") == "scd30":
             try:
@@ -88,35 +97,35 @@ class SCDReading(BackgroundJob):
             )
 
         self.record_scd_timer = timing.RepeatedTimer(
-            self.interval * 60, self.record_scd, run_immediately=True
+            self.interval, self.record_from_scd, run_immediately=True
         )
 
         self.record_scd_timer.start()
 
-    def set_interval(self, new_interval):
-        self.record_scd_timer.interval = new_interval * 60
+    def set_interval(self, new_interval) -> None:
+        self.record_scd_timer.interval = new_interval
         self.interval = new_interval
 
-    def on_sleeping(self):
+    def on_sleeping(self) -> None:
         # user pauses
         self.record_scd_timer.pause()
 
-    def on_sleeping_to_ready(self):
+    def on_sleeping_to_ready(self) -> None:
         self.record_scd_timer.unpause()
 
-    def on_disconnect(self):
+    def on_disconnect(self) -> None:
         self.record_scd_timer.cancel()
 
-    def record_co2(self):
+    def record_co2(self) -> None:
         self.co2 = self.scd.CO2
 
-    def record_temperature(self):
+    def record_temperature(self) -> None:
         self.temperature = self.scd.temperature
 
-    def record_relative_humidity(self):
+    def record_relative_humidity(self) -> None:
         self.relative_humidity = self.scd.relative_humidity
 
-    def record_scd(self):
+    def record_from_scd(self) -> None:
         # determines which scd to record
         if not self.skip_co2:
             self.record_co2()
@@ -129,8 +138,8 @@ class SCDReading(BackgroundJob):
 class CO2Reading(SCDReading):
     job_name = "co2_reading"
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, skip_temperature=True, skip_relative_humidity=True, **kwargs)
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, skip_temperature=True, skip_relative_humidity=True, **kwargs)  # type: ignore
 
 
 @click.command(name="scd_reading")
@@ -139,7 +148,7 @@ class CO2Reading(SCDReading):
     default=config.getfloat("scd_config", "interval"),
     show_default=True,
 )
-def click_scd_reading(interval):
+def click_scd_reading(interval) -> None:
     """
     Start reading CO2, temperature, and humidity from the scd sensor.
     """
@@ -157,7 +166,7 @@ def click_scd_reading(interval):
     default=config.getfloat("scd_config", "interval"),
     show_default=True,
 )
-def click_co2_reading(interval):
+def click_co2_reading(interval) -> None:
     """
     Only returns CO2 readings.
     """
