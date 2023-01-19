@@ -5,3 +5,5 @@ Adafruit offers three CO2 sensors ([SCD30](https://www.adafruit.com/product/4867
 This is a simple Pioreactor plugin that returns CO2 readings (or all readings) at a set duration from stemma QT connected Adafruit SCD sensors.
 
 Install with `pio install-plugin co2-reading-plugin` from the command line, or in the Pioreactor UI.
+
+> Important: after installation, this requires a reboot of your leader Pioreactor
