@@ -10,6 +10,7 @@ from pioreactor.config import config
 from pioreactor.exc import HardwareNotFoundError
 from pioreactor.hardware import SCL
 from pioreactor.hardware import SDA
+from pioreactor.utils import is_pio_job_running
 from pioreactor.utils import timing
 from pioreactor.whoami import get_latest_experiment_name
 from pioreactor.whoami import get_unit_name
@@ -61,6 +62,10 @@ class SCDReading(BackgroundJob):
         self.skip_co2 = skip_co2
         self.skip_temperature = skip_temperature
         self.skip_relative_humidity = skip_relative_humidity
+
+        if is_pio_job_running("co2_reading"):
+            self.clean_up()
+            raise ValueError("co2 reading can't be running at the same time")
 
         if not is_testing_env():
             from busio import I2C
@@ -140,6 +145,9 @@ class CO2Reading(SCDReading):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, skip_temperature=True, skip_relative_humidity=True, **kwargs)  # type: ignore
+        if is_pio_job_running("scd_reading"):
+            self.clean_up()
+            raise ValueError("scd reading can't be running at the same time")
 
 
 @click.command(name="scd_reading")

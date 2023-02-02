@@ -1,0 +1,12 @@
+---
+data_source: co2_readings # SQL table
+data_source_column: co2_reading_ppm
+title: CO₂ Readings
+mqtt_topic: co2_reading/co2
+chart_key: co2_readings
+source: app
+y_axis_label: ppm
+interpolation: stepAfter
+y_axis_domain: [0.00, 1000]
+lookback: 100000
+fixed_decimals: 1

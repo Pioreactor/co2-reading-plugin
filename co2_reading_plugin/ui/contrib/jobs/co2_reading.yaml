@@ -1,13 +1,12 @@
 ---
-display_name: CO2 Reading
+display_name: CO₂ Reading
 job_name: co2_reading
 display: true
 source: co2_reading_plugin
-description: Records a CO2 reading from an attached Adafruit SCD30 or SCD4x (SCD40 or SCD41).
+description: Records a CO₂ reading from an attached Adafruit SCD30 or SCD4x (SCD40 or SCD41).
 published_settings:
-  - key: Interval
-    default: 60
+  - key: interval
     unit: s
-    label: Duration between readings
+    label: Time between CO₂ readings
     type: numeric
     display: True

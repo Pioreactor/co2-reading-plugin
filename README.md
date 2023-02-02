@@ -6,4 +6,9 @@ This is a simple Pioreactor plugin that returns CO2 readings (or all readings) a
 
 Install with `pio install-plugin co2-reading-plugin` from the command line, or in the Pioreactor UI.
 
+
 > Important: after installation, this requires a reboot of your leader Pioreactor
+
+### Overview chart
+
+This also adds a chart to your overview page that displays the CO2 readings per Pioreactor.
