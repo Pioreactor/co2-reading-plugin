@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import click
-from pioreactor.background_jobs.base import BackgroundJob
+from pioreactor.background_jobs.base import BackgroundJobContrib
 from pioreactor.background_jobs.leader.mqtt_to_db_streaming import produce_metadata
 from pioreactor.background_jobs.leader.mqtt_to_db_streaming import register_source_to_sink
 from pioreactor.background_jobs.leader.mqtt_to_db_streaming import TopicToParserToTable
@@ -36,7 +36,7 @@ register_source_to_sink(
 )
 
 
-class SCDReading(BackgroundJob):
+class SCDReading(BackgroundJobContrib):
 
     job_name = "scd_reading"
 
@@ -56,7 +56,7 @@ class SCDReading(BackgroundJob):
         skip_temperature: bool = False,
         skip_relative_humidity: bool = False,
     ) -> None:
-        super().__init__(unit=unit, experiment=experiment)
+        super().__init__(unit=unit, experiment=experiment, source="co2_reading_plugin")
 
         self.interval = interval
         self.skip_co2 = skip_co2
@@ -108,6 +108,11 @@ class SCDReading(BackgroundJob):
         self.record_scd_timer.start()
 
     def set_interval(self, new_interval) -> None:
+        # TODO: this isn't a very accurate way to update the interval.
+        # you can get very short intervals when updating. Ex, changing from 60s to 45s.
+        # 2023-02-06T14:42:34  |  pioreactor/worker1/pwm tests2/co2_reading/co2   520
+        # 2023-02-06T14:42:50  |  pioreactor/worker1/pwm tests2/co2_reading/co2   517
+        # The reason is how ReaptedTimer computes `time_to_next_run`
         self.record_scd_timer.interval = new_interval
         self.interval = new_interval
 
