@@ -56,7 +56,7 @@ class SCDReading(BackgroundJobContrib):
         skip_temperature: bool = False,
         skip_relative_humidity: bool = False,
     ) -> None:
-        super().__init__(unit=unit, experiment=experiment, source="co2_reading_plugin")
+        super().__init__(unit=unit, experiment=experiment, plugin_name="co2_reading_plugin")
 
         self.interval = interval
         self.skip_co2 = skip_co2
