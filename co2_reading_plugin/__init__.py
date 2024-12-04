@@ -10,11 +10,14 @@ from pioreactor.config import config
 from pioreactor.exc import HardwareNotFoundError
 from pioreactor.hardware import SCL
 from pioreactor.hardware import SDA
-from pioreactor.utils import is_pio_job_running
 from pioreactor.utils import timing
 from pioreactor.whoami import get_latest_experiment_name
 from pioreactor.whoami import get_unit_name
 from pioreactor.whoami import is_testing_env
+
+
+def __dir__():
+    return ["click_co2_reading", "click_scd_reading"]
 
 
 def parser(topic, payload) -> dict:
@@ -52,20 +55,10 @@ class SCDReading(BackgroundJobContrib):
         unit: str,
         experiment: str,
         interval: float,
-        skip_co2: bool = False,
-        skip_temperature: bool = False,
-        skip_relative_humidity: bool = False,
     ) -> None:
         super().__init__(unit=unit, experiment=experiment, plugin_name="co2_reading_plugin")
 
         self.interval = interval
-        self.skip_co2 = skip_co2
-        self.skip_temperature = skip_temperature
-        self.skip_relative_humidity = skip_relative_humidity
-
-        if is_pio_job_running("co2_reading"):
-            self.clean_up()
-            raise ValueError("co2 reading can't be running at the same time")
 
         if not is_testing_env():
             from busio import I2C
@@ -76,7 +69,7 @@ class SCDReading(BackgroundJobContrib):
 
             i2c = MockI2C(SCL, SDA)
 
-        if config.get("scd_config", "adafruit_sensor_type") == "scd30":
+        if config.get(f"{self.job_name}.config", "adafruit_sensor_type") == "scd30":
             try:
                 from adafruit_scd30 import SCD30
 
@@ -84,7 +77,7 @@ class SCDReading(BackgroundJobContrib):
             except Exception:
                 self.logger.error("Is the SCD30 board attached to the Pioreactor HAT?")
                 raise HardwareNotFoundError("Is the SCD30 board attached to the Pioreactor HAT?")
-        elif config.get("scd_config", "adafruit_sensor_type") == "scd4x":
+        elif config.get(f"{self.job_name}.config", "adafruit_sensor_type") == "scd4x":
             try:
                 from adafruit_scd4x import SCD4X
 
@@ -95,10 +88,10 @@ class SCDReading(BackgroundJobContrib):
                 raise HardwareNotFoundError("Is the SCD4X board attached to the Pioreactor HAT?")
         else:
             self.logger.error(
-                "'adafruit_sensor_type' in [scd_config] not found. Did you mean one of 'scd30' or 'scd4x'?"
+                f"'adafruit_sensor_type' in [{self.job_name}.config] not found. Did you mean one of 'scd30' or 'scd4x'?"
             )
             raise ValueError(
-                "'adafruit_sensor_type' in [scd_config] not found. Did you mean one of 'scd30' or 'scd4x'?"
+                f"'adafruit_sensor_type' in [{self.job_name}.config] not found. Did you mean one of 'scd30' or 'scd4x'?"
             )
 
         self.record_scd_timer = timing.RepeatedTimer(
@@ -108,11 +101,6 @@ class SCDReading(BackgroundJobContrib):
         self.record_scd_timer.start()
 
     def set_interval(self, new_interval) -> None:
-        # TODO: this isn't a very accurate way to update the interval.
-        # you can get very short intervals when updating. Ex, changing from 60s to 45s.
-        # 2023-02-06T14:42:34  |  pioreactor/worker1/pwm tests2/co2_reading/co2   520
-        # 2023-02-06T14:42:50  |  pioreactor/worker1/pwm tests2/co2_reading/co2   517
-        # The reason is how ReaptedTimer computes `time_to_next_run`
         self.record_scd_timer.interval = new_interval
         self.interval = new_interval
 
@@ -123,7 +111,7 @@ class SCDReading(BackgroundJobContrib):
     def on_sleeping_to_ready(self) -> None:
         self.record_scd_timer.unpause()
 
-    def on_disconnect(self) -> None:
+    def on_disconnected(self) -> None:
         self.record_scd_timer.cancel()
 
     def record_co2(self) -> None:
@@ -137,28 +125,96 @@ class SCDReading(BackgroundJobContrib):
 
     def record_from_scd(self) -> None:
         # determines which scd to record
-        if not self.skip_co2:
-            self.record_co2()
-        if not self.skip_temperature:
-            self.record_temperature()
-        if not self.skip_relative_humidity:
-            self.record_relative_humidity()
+        self.record_co2()
+        self.record_temperature()
+        self.record_relative_humidity()
 
 
-class CO2Reading(SCDReading):
+class CO2Reading(BackgroundJobContrib):
+
     job_name = "co2_reading"
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, skip_temperature=True, skip_relative_humidity=True, **kwargs)  # type: ignore
-        if is_pio_job_running("scd_reading"):
-            self.clean_up()
-            raise ValueError("scd reading can't be running at the same time")
+    published_settings = {
+        "interval": {"datatype": "float", "unit": "s", "settable": True},
+        "co2": {"datatype": "float", "unit": "ppm", "settable": False},
+    }
+
+    def __init__(
+        self,
+        unit: str,
+        experiment: str,
+        interval: float,
+    ) -> None:
+        super().__init__(unit=unit, experiment=experiment, plugin_name="co2_reading_plugin")
+
+        self.interval = interval
+
+        if not is_testing_env():
+            from busio import I2C
+
+            i2c = I2C(SCL, SDA)
+        else:
+            from pioreactor.utils.mock import MockI2C
+
+            i2c = MockI2C(SCL, SDA)
+
+        if config.get(f"{self.job_name}.config", "adafruit_sensor_type") == "scd30":
+            try:
+                from adafruit_scd30 import SCD30
+
+                self.scd = SCD30(i2c)
+            except Exception:
+                self.logger.error("Is the SCD30 board attached to the Pioreactor HAT?")
+                raise HardwareNotFoundError("Is the SCD30 board attached to the Pioreactor HAT?")
+        elif config.get(f"{self.job_name}.config", "adafruit_sensor_type") == "scd4x":
+            try:
+                from adafruit_scd4x import SCD4X
+
+                self.scd = SCD4X(i2c)
+                self.scd.start_periodic_measurement()
+            except Exception:
+                self.logger.error("Is the SCD4X board attached to the Pioreactor HAT?")
+                raise HardwareNotFoundError("Is the SCD4X board attached to the Pioreactor HAT?")
+        else:
+            self.logger.error(
+                f"'adafruit_sensor_type' in [{self.job_name}.config] not found. Did you mean one of 'scd30' or 'scd4x'?"
+            )
+            raise ValueError(
+                f"'adafruit_sensor_type' in [{self.job_name}.config] not found. Did you mean one of 'scd30' or 'scd4x'?"
+            )
+
+        self.record_scd_timer = timing.RepeatedTimer(
+            self.interval, self.record_from_scd, run_immediately=True
+        )
+
+        self.record_scd_timer.start()
+
+    def set_interval(self, new_interval) -> None:
+        self.record_scd_timer.interval = new_interval
+        self.interval = new_interval
+
+    def on_sleeping(self) -> None:
+        # user pauses
+        self.record_scd_timer.pause()
+
+    def on_sleeping_to_ready(self) -> None:
+        self.record_scd_timer.unpause()
+
+    def on_disconnected(self) -> None:
+        self.record_scd_timer.cancel()
+
+    def record_co2(self) -> None:
+        self.co2 = self.scd.CO2
+
+    def record_from_scd(self) -> None:
+        # determines which scd to record
+        self.record_co2()
 
 
 @click.command(name="scd_reading")
 @click.option(
     "--interval",
-    default=config.getfloat("scd_config", "interval"),
+    default=config.getfloat("scd_reading.config", "interval"),
     show_default=True,
 )
 def click_scd_reading(interval) -> None:
@@ -176,7 +232,7 @@ def click_scd_reading(interval) -> None:
 @click.command(name="co2_reading")
 @click.option(
     "--interval",
-    default=config.getfloat("scd_config", "interval"),
+    default=config.getfloat("co2_reading.config", "interval"),
     show_default=True,
 )
 def click_co2_reading(interval) -> None:

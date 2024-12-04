@@ -1,0 +1,10 @@
+dataset_name: co2_readings
+default_order_by: timestamp
+description: This dataset includes the CO₂ readings from the SCDxx sensors.
+display_name: CO₂ Readings
+has_experiment: true
+has_unit: true
+source: co2-reading-plugin
+table: co2_readings
+timestamp_columns:
+- timestamp

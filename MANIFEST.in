@@ -1,3 +1,4 @@
 recursive-include co2_reading_plugin/ui *.yaml
+recursive-include co2_reading_plugin/exportable_datasets *.yaml
 include co2_reading_plugin/additional_config.ini
 include co2_reading_plugin/additional_sql.sql
