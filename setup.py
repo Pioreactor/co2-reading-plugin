@@ -7,7 +7,7 @@ from setuptools import setup
 
 setup(
     name="co2-reading-plugin",
-    version="0.2.0",
+    version="0.2.1",
     license="MIT",
     description="Return a CO₂ reading every interval from an Adafruit CO₂ sensors SCD30, SCD40 or SCD41.",
     long_description=open("README.md").read(),

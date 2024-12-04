@@ -11,7 +11,7 @@ from pioreactor.exc import HardwareNotFoundError
 from pioreactor.hardware import SCL
 from pioreactor.hardware import SDA
 from pioreactor.utils import timing
-from pioreactor.whoami import get_latest_experiment_name
+from pioreactor.whoami import get_assigned_experiment_name
 from pioreactor.whoami import get_unit_name
 from pioreactor.whoami import is_testing_env
 
@@ -221,10 +221,12 @@ def click_scd_reading(interval) -> None:
     """
     Start reading CO2, temperature, and humidity from the scd sensor.
     """
+    unit = get_unit_name()
+
     job = SCDReading(
         interval=interval,
-        unit=get_unit_name(),
-        experiment=get_latest_experiment_name(),
+        unit=unit,
+        experiment=get_assigned_experiment_name(unit),
     )
     job.block_until_disconnected()
 
@@ -239,9 +241,10 @@ def click_co2_reading(interval) -> None:
     """
     Only returns CO2 readings.
     """
+    unit = get_unit_name()
     job = CO2Reading(
         interval=interval,
-        unit=get_unit_name(),
-        experiment=get_latest_experiment_name(),
+        unit=unit,
+        experiment=get_assigned_experiment_name(unit),
     )
     job.block_until_disconnected()
