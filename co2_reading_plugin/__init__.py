@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import click
 from pioreactor.background_jobs.base import BackgroundJobContrib
 from pioreactor.background_jobs.leader.mqtt_to_db_streaming import produce_metadata
 from pioreactor.background_jobs.leader.mqtt_to_db_streaming import register_source_to_sink
 from pioreactor.background_jobs.leader.mqtt_to_db_streaming import TopicToParserToTable
+from pioreactor.cli.run import run
 from pioreactor.config import config
 from pioreactor.exc import HardwareNotFoundError
 from pioreactor.hardware import SCL
@@ -14,10 +14,6 @@ from pioreactor.utils import timing
 from pioreactor.whoami import get_assigned_experiment_name
 from pioreactor.whoami import get_unit_name
 from pioreactor.whoami import is_testing_env
-
-
-def __dir__():
-    return ["click_co2_reading", "click_scd_reading"]
 
 
 def parser(topic, payload) -> dict:
@@ -54,11 +50,10 @@ class SCDReading(BackgroundJobContrib):
         self,
         unit: str,
         experiment: str,
-        interval: float,
     ) -> None:
         super().__init__(unit=unit, experiment=experiment, plugin_name="co2_reading_plugin")
 
-        self.interval = interval
+        self.interval = config.get(f"{self.job_name}.config", "interval")
 
         if not is_testing_env():
             from busio import I2C
@@ -143,11 +138,10 @@ class CO2Reading(BackgroundJobContrib):
         self,
         unit: str,
         experiment: str,
-        interval: float,
     ) -> None:
         super().__init__(unit=unit, experiment=experiment, plugin_name="co2_reading_plugin")
 
-        self.interval = interval
+        self.interval = config.get(f"{self.job_name}.config", "interval")
 
         if not is_testing_env():
             from busio import I2C
@@ -211,39 +205,27 @@ class CO2Reading(BackgroundJobContrib):
         self.record_co2()
 
 
-@click.command(name="scd_reading")
-@click.option(
-    "--interval",
-    default=config.getfloat("scd_reading.config", "interval"),
-    show_default=True,
-)
-def click_scd_reading(interval) -> None:
+@run.command(name="scd_reading")
+def start_scd_reading() -> None:
     """
     Start reading CO2, temperature, and humidity from the scd sensor.
     """
     unit = get_unit_name()
 
     job = SCDReading(
-        interval=interval,
         unit=unit,
         experiment=get_assigned_experiment_name(unit),
     )
     job.block_until_disconnected()
 
 
-@click.command(name="co2_reading")
-@click.option(
-    "--interval",
-    default=config.getfloat("co2_reading.config", "interval"),
-    show_default=True,
-)
-def click_co2_reading(interval) -> None:
+@run.command(name="co2_reading")
+def start_co2_reading() -> None:
     """
     Only returns CO2 readings.
     """
     unit = get_unit_name()
     job = CO2Reading(
-        interval=interval,
         unit=unit,
         experiment=get_assigned_experiment_name(unit),
     )

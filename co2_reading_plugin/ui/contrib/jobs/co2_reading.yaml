@@ -10,5 +10,4 @@ published_settings:
     label: Time between CO₂ readings
     type: numeric
     display: True
-    default: null
     description: The duration (s) between CO₂ readings. There is a minimum duration, around 10s, that is required for proper accuracy.
