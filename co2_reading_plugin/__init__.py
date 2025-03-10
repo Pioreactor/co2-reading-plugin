@@ -53,7 +53,7 @@ class SCDReading(BackgroundJobContrib):
     ) -> None:
         super().__init__(unit=unit, experiment=experiment, plugin_name="co2_reading_plugin")
 
-        self.interval = config.get(f"{self.job_name}.config", "interval")
+        self.interval = config.getfloat(f"{self.job_name}.config", "interval")
 
         if not is_testing_env():
             from busio import I2C
@@ -90,7 +90,9 @@ class SCDReading(BackgroundJobContrib):
             )
 
         self.record_scd_timer = timing.RepeatedTimer(
-            self.interval, self.record_from_scd, run_immediately=True
+            self.interval,
+            self.record_from_scd,
+            run_immediately=True,
         )
 
         self.record_scd_timer.start()
@@ -141,7 +143,7 @@ class CO2Reading(BackgroundJobContrib):
     ) -> None:
         super().__init__(unit=unit, experiment=experiment, plugin_name="co2_reading_plugin")
 
-        self.interval = config.get(f"{self.job_name}.config", "interval")
+        self.interval = config.getfloat(f"{self.job_name}.config", "interval")
 
         if not is_testing_env():
             from busio import I2C
