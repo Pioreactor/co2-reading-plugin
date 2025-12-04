@@ -8,8 +8,8 @@ from pioreactor.background_jobs.leader.mqtt_to_db_streaming import TopicToParser
 from pioreactor.cli.run import run
 from pioreactor.config import config
 from pioreactor.exc import HardwareNotFoundError
-from pioreactor.hardware import SCL
-from pioreactor.hardware import SDA
+from pioreactor.hardware import get_scl_pin
+from pioreactor.hardware import get_sda_pin
 from pioreactor.utils import timing
 from pioreactor.whoami import get_assigned_experiment_name
 from pioreactor.whoami import get_unit_name
@@ -54,6 +54,9 @@ class SCDReading(BackgroundJobContrib):
         super().__init__(unit=unit, experiment=experiment, plugin_name="co2_reading_plugin")
 
         self.interval = config.getfloat(f"{self.job_name}.config", "interval")
+
+        SCL = get_scl_pin()
+        SDA = get_sda_pin()
 
         if not is_testing_env():
             from busio import I2C
@@ -144,6 +147,9 @@ class CO2Reading(BackgroundJobContrib):
         super().__init__(unit=unit, experiment=experiment, plugin_name="co2_reading_plugin")
 
         self.interval = config.getfloat(f"{self.job_name}.config", "interval")
+
+        SCL = get_scl_pin()
+        SDA = get_sda_pin()
 
         if not is_testing_env():
             from busio import I2C
